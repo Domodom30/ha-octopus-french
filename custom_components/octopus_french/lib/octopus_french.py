@@ -2,6 +2,8 @@ from datetime import datetime, timedelta
 
 from python_graphql_client import GraphqlClient
 
+from custom_components.octopus_french.config_flow import _LOGGER
+
 GRAPH_QL_ENDPOINT = "https://api.oefr-kraken.energy/v1/graphql/"
 SOLAR_WALLET_LEDGER = "SOLAR_WALLET_LEDGER"
 ELECTRICITY_LEDGER = "FRENCH_ELECTRICITY_LEDGER"
@@ -73,6 +75,13 @@ class OctopusFrench:
         headers = {"Authorization": f"JWT {self._token}"}
         client = GraphqlClient(endpoint=GRAPH_QL_ENDPOINT, headers=headers)
         response = await client.execute_async(query, {"account": account})
+
+        # Utiliser :
+        if "data" not in response:
+            _LOGGER.error(f"Unexpected API response structure: {response}")
+            raise Exception("API response missing 'data' field")
+
+        ledgers = response["data"]["accountBillingInfo"]["ledgers"]
         ledgers = response["data"]["accountBillingInfo"]["ledgers"]
         electricity = next(filter(lambda x: x['ledgerType'] == ELECTRICITY_LEDGER, ledgers), None)
         solar_wallet = next(filter(lambda x: x['ledgerType'] == SOLAR_WALLET_LEDGER, ledgers), {'balance': 0})
