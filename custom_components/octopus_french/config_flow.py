@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 import voluptuous as vol
@@ -18,7 +17,6 @@ from homeassistant.helpers.selector import (
 from .const import *
 from .lib.octopus_french import OctopusFrench
 
-_LOGGER = logging.getLogger(__name__)
 
 SCHEMA = vol.Schema(
     {
