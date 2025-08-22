@@ -1,82 +1,131 @@
-from homeassistant.components.sensor import SensorEntity
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
-from datetime import timedelta
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from .api import OctopusFrenchAPI
-from .const import DOMAIN
 import logging
+from datetime import timedelta
+from typing import Mapping, Any
+
+from homeassistant.helpers.typing import StateType
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, CoordinatorEntity
+from .const import (
+    CONF_PASSWORD,
+    CONF_EMAIL, UPDATE_INTERVAL
+)
+
+from homeassistant.const import (
+    CURRENCY_EURO,
+)
+
+from homeassistant.components.sensor import (
+    SensorEntityDescription, SensorEntity, SensorStateClass
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from .lib.octopus_french import OctopusFrench
 
 _LOGGER = logging.getLogger(__name__)
 
-SCAN_INTERVAL = timedelta(minutes=30)
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    username = entry.data[CONF_USERNAME]
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+    email = entry.data[CONF_EMAIL]
     password = entry.data[CONF_PASSWORD]
 
-    api = OctopusFrenchAPI(username, password)
-    await hass.async_add_executor_job(api.login)
-
-    async def async_update_data():
-        try:
-            accounts = await hass.async_add_executor_job(api.accounts_ledgers)
-            account_number = accounts["data"]["viewer"]["accounts"][0]["number"]
-
-            elec = await hass.async_add_executor_job(api.consumption, account_number, "ELECTRICITY")
-            gas = await hass.async_add_executor_job(api.consumption, account_number, "GAS")
-
-            return {
-                "accounts": accounts,
-                "consumption_elec": elec,
-                "consumption_gas": gas,
-            }
-        except Exception as err:
-            raise UpdateFailed(err)
-
-    coordinator = DataUpdateCoordinator(
-        hass,
-        _LOGGER,
-        name="octopus_french",
-        update_method=async_update_data,
-        update_interval=SCAN_INTERVAL,
-    )
-
+    sensors = []
+    coordinator = OctopusCoordinator(hass, email, password)
     await coordinator.async_config_entry_first_refresh()
 
-    entities = [
-        OctopusFrenchSensor(coordinator, "monthly_bill", "Facture totale mensuelle (€)"),
-        OctopusFrenchSensor(coordinator, "elec_consumption", "Conso Électricité (kWh)"),
-        OctopusFrenchSensor(coordinator, "gas_consumption", "Conso Gaz (kWh)"),
-    ]
+    accounts = coordinator.data.keys()
+    for account in accounts:
+        sensors.append(OctopusWallet(account, 'solar_wallet', 'Solar Wallet', coordinator, len(accounts) == 1))
+        sensors.append(OctopusWallet(account, 'octopus_credit', 'Octopus Credit', coordinator, len(accounts) == 1))
+        sensors.append(OctopusInvoice(account, coordinator, len(accounts) == 1))
 
-    async_add_entities(entities)
+    async_add_entities(sensors)
 
-class OctopusFrenchSensor(SensorEntity):
-    def __init__(self, coordinator, sensor_type, name):
-        self.coordinator = coordinator
-        self._attr_name = name
-        self.sensor_type = sensor_type
+
+class OctopusCoordinator(DataUpdateCoordinator):
+
+    def __init__(self, hass: HomeAssistant, email: str, password: str):
+        super().__init__(hass=hass, logger=_LOGGER, name="Octopus French", update_interval=timedelta(hours=UPDATE_INTERVAL))
+        self._api = OctopusFrench(email, password)
+        self._data = {}
+
+    async def _async_update_data(self):
+        if await self._api.login():
+            self._data = {}
+            accounts = await self._api.accounts()
+            for account in accounts:
+                self._data[account] = await self._api.account(account)
+
+        return self._data
+
+
+class OctopusWallet(CoordinatorEntity, SensorEntity):
+
+    def __init__(self, account: str, key: str, name: str, coordinator, single: bool):
+        super().__init__(coordinator=coordinator)
+        self._state = None
+        self._key = key
+        self._account = account
+        self._attrs: Mapping[str, Any] = {}
+        self._attr_name = f"{name}" if single else f"{name} ({account})"
+        self._attr_unique_id = f"{key}_{account}"
+        self.entity_description = SensorEntityDescription(
+            key=f"{key}_{account}",
+            icon="mdi:piggy-bank-outline",
+            native_unit_of_measurement=CURRENCY_EURO,
+            state_class=SensorStateClass.MEASUREMENT
+        )
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self._handle_coordinator_update()
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._state = self.coordinator.data[self._account][self._key]
+        self.async_write_ha_state()
 
     @property
-    def native_value(self):
-        data = self.coordinator.data
-        if not data:
-            return None
+    def native_value(self) -> StateType:
+        return self._state
 
-        if self.sensor_type == "monthly_bill":
-            ledgers = data["accounts"]["data"]["viewer"]["accounts"][0]["ledgers"]
-            return sum(l["balance"] for l in ledgers) / 100  # en €
-        if self.sensor_type == "elec_consumption":
-            conso = data["consumption_elec"]["data"]["accountConsumption"]["consumption"]
-            return sum(c["consumption"] for c in conso)
-        if self.sensor_type == "gas_consumption":
-            conso = data["consumption_gas"]["data"]["accountConsumption"]["consumption"]
-            return sum(c["consumption"] for c in conso)
-        return None
+
+class OctopusInvoice(CoordinatorEntity, SensorEntity):
+
+    def __init__(self, account: str, coordinator, single: bool):
+        super().__init__(coordinator=coordinator)
+        self._state = None
+        self._account = account
+        self._attrs: Mapping[str, Any] = {}
+        self._attr_name = "Última Factura Octopus" if single else f"Última Factura Octopus ({account})"
+        self._attr_unique_id = f"last_invoice_{account}"
+        self.entity_description = SensorEntityDescription(
+            key=f"last_invoice_{account}",
+            icon="mdi:currency-eur",
+            native_unit_of_measurement=CURRENCY_EURO,
+            state_class=SensorStateClass.MEASUREMENT
+        )
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self._handle_coordinator_update()
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        data = self.coordinator.data[self._account]['last_invoice']
+        self._state = data['amount']
+        self._attrs = {
+            'Inicio': data['start'],
+            'Fin': data['end'],
+            'Emitida': data['issued']
+        }
+        self.async_write_ha_state()
 
     @property
-    def should_poll(self):
-        return False
+    def native_value(self) -> StateType:
+        return self._state
 
-    async def async_update(self):
-        await self.coordinator.async_request_refresh()
+    @property
+    def extra_state_attributes(self) -> Mapping[str, Any] | None:
+        return self._attrs

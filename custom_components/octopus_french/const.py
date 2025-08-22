@@ -1,10 +1,8 @@
-"""Constants for Octopus Energy French."""
+"""Constants for Octopus Energy Spain."""
 
-DOMAIN = "octopus_fr"
+DOMAIN = "octopus_french"
+
 CONF_EMAIL = 'email'
 CONF_PASSWORD = 'password'
 
 UPDATE_INTERVAL = 2  # Hours
-API_URL = "https://api.oefr-kraken.energy/v1/graphql/"
-
-PLATFORMS = ["sensor"]

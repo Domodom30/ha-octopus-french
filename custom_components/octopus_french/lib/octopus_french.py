@@ -1,63 +1,110 @@
-import requests
+from datetime import datetime, timedelta
 
-class OctopusFrenchAPI:
-    def __init__(self, username, password):
-        self.username = username
-        self.password = password
-        self.token = None
+from python_graphql_client import GraphqlClient
 
-    def login(self):
-        query = """
-        mutation Login($email: String!, $password: String!) {
-          obtainKrakenToken(input: {email: $email, password: $password}) {
-            token
-          }
-        }
-        """
-        resp = requests.post(
-            "https://api.oefr-kraken.energy/v1/graphql/",
-            json={"query": query, "variables": {"email": self.username, "password": self.password}},
-        )
-        data = resp.json()
-        self.token = data["data"]["obtainKrakenToken"]["token"]
-        return self.token
+GRAPH_QL_ENDPOINT = "https://api.oefr-kraken.energy/v1/graphql/"
+SOLAR_WALLET_LEDGER = "SOLAR_WALLET_LEDGER"
+ELECTRICITY_LEDGER = "SPAIN_ELECTRICITY_LEDGER"
 
-    def _request(self, query, variables=None):
-        headers = {"Authorization": f"Bearer {self.token}"}
-        resp = requests.post(
-            "https://api.oefr-kraken.energy/v1/graphql/",
-            json={"query": query, "variables": variables or {}},
-            headers=headers,
-        )
-        return resp.json()
 
-    def accounts_ledgers(self):
-        query = """
-        query {
-          viewer {
-            accounts {
-              number
-              ledgers {
-                ledgerType
-                balance
+class OctopusFrench:
+    def __init__(self, email, password):
+        self._email = email
+        self._password = password
+        self._token = None
+
+    async def login(self):
+        mutation = """
+           mutation obtainKrakenToken($input: ObtainJSONWebTokenInput!) {
+              obtainKrakenToken(input: $input) {
+                token
               }
             }
-          }
-        }
         """
-        return self._request(query)
+        variables = {"input": {"email": self._email, "password": self._password}}
 
-    def consumption(self, account_number, fuel_type="ELECTRICITY"):
+        client = GraphqlClient(endpoint=GRAPH_QL_ENDPOINT)
+        response = await client.execute_async(mutation, variables)
+
+        if "errors" in response:
+            return False
+
+        self._token = response["data"]["obtainKrakenToken"]["token"]
+        return True
+
+    async def accounts(self):
         query = """
-        query($accountNumber: String!, $fuelType: FuelType!) {
-          accountConsumption(accountNumber: $accountNumber, fuelType: $fuelType) {
-            consumption {
-              startAt
-              endAt
-              consumption
-              unit
+             query getAccountNames{
+                viewer {
+                    accounts {
+                        ... on Account {
+                            number
+                        }
+                    }
+                }
             }
-          }
-        }
+            """
+
+        headers = {"authorization": self._token}
+        client = GraphqlClient(endpoint=GRAPH_QL_ENDPOINT, headers=headers)
+        response = await client.execute_async(query)
+
+        return list(map(lambda a: a["number"], response["data"]["viewer"]["accounts"]))
+
+    async def account(self, account: str):
+        query = """
+            query ($account: String!) {
+              accountBillingInfo(accountNumber: $account) {
+                ledgers {
+                  ledgerType
+                  statementsWithDetails(first: 1) {
+                    edges {
+                      node {
+                        amount
+                        consumptionStartDate
+                        consumptionEndDate
+                        issuedDate
+                      }
+                    }
+                  }
+                  balance
+                }
+              }
+            }
         """
-        return self._request(query, {"accountNumber": account_number, "fuelType": fuel_type})
+        headers = {"authorization": self._token}
+        client = GraphqlClient(endpoint=GRAPH_QL_ENDPOINT, headers=headers)
+        response = await client.execute_async(query, {"account": account})
+        ledgers = response["data"]["accountBillingInfo"]["ledgers"]
+        electricity = next(filter(lambda x: x['ledgerType'] == ELECTRICITY_LEDGER, ledgers), None)
+        solar_wallet = next(filter(lambda x: x['ledgerType'] == SOLAR_WALLET_LEDGER, ledgers), {'balance': 0})
+
+        if not electricity:
+            raise Exception("Electricity ledger not found")
+
+        invoices = electricity["statementsWithDetails"]["edges"]
+
+        if len(invoices) == 0:
+            return {
+                'solar_wallet': None,
+                'last_invoice': {
+                    'amount': None,
+                    'issued': None,
+                    'start': None,
+                    'end': None
+                }
+            }
+
+        invoice = invoices[0]["node"]
+
+        # Los timedelta son bastante chapuzas, habrá que arreglarlo
+        return {
+            "solar_wallet": (float(solar_wallet["balance"]) / 100),
+            "octopus_credit": (float(electricity["balance"]) / 100),
+            "last_invoice": {
+                "amount": invoice["amount"] if invoice["amount"] else 0,
+                "issued": datetime.fromisoformat(invoice["issuedDate"]).date(),
+                "start": (datetime.fromisoformat(invoice["consumptionStartDate"]) + timedelta(hours=2)).date(),
+                "end": (datetime.fromisoformat(invoice["consumptionEndDate"]) - timedelta(seconds=1)).date(),
+            },
+        }
