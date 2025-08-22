@@ -4,7 +4,7 @@ from python_graphql_client import GraphqlClient
 
 GRAPH_QL_ENDPOINT = "https://api.oefr-kraken.energy/v1/graphql/"
 SOLAR_WALLET_LEDGER = "SOLAR_WALLET_LEDGER"
-ELECTRICITY_LEDGER = "SPAIN_ELECTRICITY_LEDGER"
+ELECTRICITY_LEDGER = "FRENCH_ELECTRICITY_LEDGER"
 
 
 class OctopusFrench:
@@ -34,18 +34,16 @@ class OctopusFrench:
 
     async def accounts(self):
         query = """
-             query getAccountNames{
-                viewer {
-                    accounts {
-                        ... on Account {
-                            number
-                        }
-                    }
+         query getAccountNames{
+            viewer {
+                accounts {
+                    number
                 }
             }
-            """
+        }
+    """
 
-        headers = {"authorization": self._token}
+        headers = {"Authorization": f"JWT {self._token}"}
         client = GraphqlClient(endpoint=GRAPH_QL_ENDPOINT, headers=headers)
         response = await client.execute_async(query)
 
@@ -72,7 +70,7 @@ class OctopusFrench:
               }
             }
         """
-        headers = {"authorization": self._token}
+        headers = {"Authorization": f"JWT {self._token}"}
         client = GraphqlClient(endpoint=GRAPH_QL_ENDPOINT, headers=headers)
         response = await client.execute_async(query, {"account": account})
         ledgers = response["data"]["accountBillingInfo"]["ledgers"]

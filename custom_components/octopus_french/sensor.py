@@ -97,7 +97,7 @@ class OctopusInvoice(CoordinatorEntity, SensorEntity):
         self._state = None
         self._account = account
         self._attrs: Mapping[str, Any] = {}
-        self._attr_name = "Última Factura Octopus" if single else f"Última Factura Octopus ({account})"
+        self._attr_name = "Dernière facture Octopus" if single else f"Dernière facture Octopus ({account})"
         self._attr_unique_id = f"last_invoice_{account}"
         self.entity_description = SensorEntityDescription(
             key=f"last_invoice_{account}",
@@ -116,9 +116,9 @@ class OctopusInvoice(CoordinatorEntity, SensorEntity):
         data = self.coordinator.data[self._account]['last_invoice']
         self._state = data['amount']
         self._attrs = {
-            'Inicio': data['start'],
+            'Debut': data['start'],
             'Fin': data['end'],
-            'Emitida': data['issued']
+            'Emis': data['issued']
         }
         self.async_write_ha_state()
 

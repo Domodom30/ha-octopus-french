@@ -1,4 +1,4 @@
-"""Constants for Octopus Energy Spain."""
+"""Constants for Octopus Energy French."""
 
 DOMAIN = "octopus_french"
 
