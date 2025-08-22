@@ -4,6 +4,9 @@ from typing import Any
 
 import voluptuous as vol
 
+import logging
+_LOGGER = logging.getLogger(__name__)
+
 from homeassistant.core import callback
 
 from homeassistant import config_entries
