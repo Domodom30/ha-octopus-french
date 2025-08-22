@@ -1,65 +1,30 @@
-# Componente Octopus Spain para Home Assistant
+Copiez l'URL du dépôt[](https://github.com/Domodom30/ha-octopus-french), sélectionnez _Intégration_ comme catégorie, puis cliquez sur _Ajouter_.
 
-## ¿Qué es Octopus Energy?
+## Configuration
 
-[Octopus Energy](https://octopusenergy.es/) es una comercializadora eléctrica española.
+Une fois installé, allez dans _Appareils et services -> Ajouter une intégration_ et recherchez _Octopus_.
 
-Entre otras ventajas, dispone de la **Solar Wallet**, un servicio que permite acumular crédito obtenido
-por los excedentes solares para reducir a 0€ la factura así como acumular para posteriores facturas.
+L'assistant vous demandera votre email et votre mot de passe pour [Octopus Energy](https://octopusenergy.fr/).
 
-
-## ¿Qué hace el componente Octopus Spain?
-
-Este componente conecta con tu cuenta de _Octopus Energy_ para obtener el estado actual de tu **Solar Wallet** 
-así como los datos básicos de última factura.
-
-Este componente ha sido revisado por los ingenerios de _Octopus Energy_ y ha recibido su visto bueno.
-
-## Instalación
-
-Puedes instalar el componente usando HACS:
-
-### Directa usando _My Home Assistant_
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=miguelangellv&repository=ha-octopus-spain&category=integration)
-
-
-### Manual
-```
-HACS -> Integraciones -> Tres puntitos -> Repositorios Personalizados
-```
-Copias la URL del reposotiro ( https://github.com/MiguelAngelLV/octopus_spain ), como categoría seleccionas _Integración_ y pulsas en _Añadir_.
-
-
-## Configuración
-
-Una vez instalado, ve a _Dispositivos y Servicios -> Añadir Integración_ y busca _Octopus_.
-
-El asistente te solicitará tu email y contraseña de [Octopus Energy](https://octopusenergy.es/)
-
-
-
-## Entidades
-Una vez configurado el componente, tendrás dos entidades por cada cuenta que tengas asociada a tu email (normalmente una).
+## Entités
+Une fois le composant configuré, vous aurez deux entités pour chaque compte associé à votre email (généralement un seul).
 
 ### Solar Wallet
-La entidad Solar Wallet devuelve el valor actual de tu Solar Wallet. Este valor (en euros) estará actualizado al de tu última factura. Actualmente no se puede consultar en tiempo real.
+L'entité Solar Wallet affiche la valeur actuelle de votre Solar Wallet. Cette valeur (en euros) est mise à jour en fonction de votre dernière facture. Actuellement, il n'est pas possible de consulter cette valeur en temps réel.
 
 ## Octopus Credit
-La entidad Octopus Credit devuelve el valor actual de tu crédito en Octopus obtenido por cuentas referedidas u otras posibles bonificaciones.
+L'entité Octopus Credit affiche la valeur actuelle de votre crédit Octopus obtenu grâce à des parrainages ou d'autres éventuelles bonifications.
 
-### Última Factura
-Esta entidad devuelve el coste de tu última factura.
+### Dernière facture
+Cette entité affiche le coût de votre dernière facture.
 
-Adicionalmente, en los atributos, están disponibles las fechas de emisión de esa factura así el periodo (inicio y final) de la misma.
+De plus, dans les attributs, vous trouverez les dates d'émission de cette facture ainsi que la période (début et fin) correspondante.
 
+## Utilisation
 
-## Uso
+Vous pourrez utiliser ces entités pour visualiser l'état ou créer des automatisations, par exemple, pour être informé lorsqu'un changement se produit dans l'attribut "Émise" de la dernière facture.
 
-Podrás usar estas etidades para visualizar el estado así como crear automatizaciones para informate, por ejemplo, 
-cuando se produzca un cambio en el atributo "Emitida" de última fáctura.
-
-
-Una forma de representar los datos sería esta:
+Une manière de représenter les données serait la suivante :
 
 ```yaml
 title: Octopus Spain
@@ -70,9 +35,9 @@ entities:
   - entity: sensor.octopus_credit
   - type: attribute
     entity: sensor.ultima_factura_octopus
-    name: Inicio
+    name: Début
     icon: mdi:calendar-start
-    attribute: Inicio
+    attribute: Début
   - type: attribute
     entity: sensor.ultima_factura_octopus
     name: Fin
@@ -80,14 +45,6 @@ entities:
     attribute: Fin
   - type: attribute
     entity: sensor.ultima_factura_octopus
-    name: Emitida
+    name: Émise
     icon: mdi:email-fast-outline
-    attribute: Emitida
-```
-
-![card.png](img/card.png)
-
-## Videotutorial
-
-[![Octopus Spain](http://img.youtube.com/vi/fJ1W_wACbfw/0.jpg)](http://www.youtube.com/watch?v=fJ1W_wACbfw)
-
+    attribute: Émise
