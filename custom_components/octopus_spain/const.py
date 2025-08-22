@@ -1,6 +1,6 @@
-"""Constants for Octopus Energy Spain."""
+"""Constants for Octopus Energy French."""
 
-DOMAIN = "octopus_spain"
+DOMAIN = "octopus_french"
 
 CONF_EMAIL = 'email'
 CONF_PASSWORD = 'password'

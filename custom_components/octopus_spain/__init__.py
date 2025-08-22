@@ -1,4 +1,4 @@
-"""Balance Neto"""
+"""Balance Net"""
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
@@ -29,3 +29,4 @@ async def _async_update_options(hass: HomeAssistant, config_entry: ConfigEntry) 
         config_entry, data={**config_entry.data, **config_entry.options}
     )
     await hass.config_entries.async_reload(config_entry.entry_id)
+    

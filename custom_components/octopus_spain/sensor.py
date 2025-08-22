@@ -19,7 +19,7 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from .lib.octopus_spain import OctopusSpain
+from .lib.octopus_french import OctopusFrench
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,8 +44,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 class OctopusCoordinator(DataUpdateCoordinator):
 
     def __init__(self, hass: HomeAssistant, email: str, password: str):
-        super().__init__(hass=hass, logger=_LOGGER, name="Octopus Spain", update_interval=timedelta(hours=UPDATE_INTERVAL))
-        self._api = OctopusSpain(email, password)
+        super().__init__(hass=hass, logger=_LOGGER, name="Octopus French", update_interval=timedelta(hours=UPDATE_INTERVAL))
+        self._api = OctopusFrench(email, password)
         self._data = {}
 
     async def _async_update_data(self):
@@ -97,7 +97,7 @@ class OctopusInvoice(CoordinatorEntity, SensorEntity):
         self._state = None
         self._account = account
         self._attrs: Mapping[str, Any] = {}
-        self._attr_name = "Última Factura Octopus" if single else f"Última Factura Octopus ({account})"
+        self._attr_name = "Dernière facture Octopus" if single else f"Dernière facture Octopus ({account})"
         self._attr_unique_id = f"last_invoice_{account}"
         self.entity_description = SensorEntityDescription(
             key=f"last_invoice_{account}",
@@ -116,9 +116,9 @@ class OctopusInvoice(CoordinatorEntity, SensorEntity):
         data = self.coordinator.data[self._account]['last_invoice']
         self._state = data['amount']
         self._attrs = {
-            'Inicio': data['start'],
+            'Début': data['start'],
             'Fin': data['end'],
-            'Emitida': data['issued']
+            'Émise': data['issued']
         }
         self.async_write_ha_state()
 

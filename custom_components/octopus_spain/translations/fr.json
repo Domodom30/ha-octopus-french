@@ -1,0 +1,33 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "L'appareil est déjà configuré"
+    },
+    "error": {
+      "invalid_auth": "Email ou mot de passe invalides."
+    },
+    "step": {
+      "user": {
+        "title": "Octopus Energy France",
+        "data": {
+          "email": "Email",
+          "password": "Mot de passe"
+        }
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "invalid_auth": "Email ou mot de passe invalides."
+    },
+    "step": {
+      "init": {
+        "title": "Octopus Energy France",
+        "data": {
+          "email": "Email",
+          "password": "Mot de passe"
+        }
+      }
+    }
+  }
+}
