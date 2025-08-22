@@ -27,24 +27,24 @@ Vous pourrez utiliser ces entités pour visualiser l'état ou créer des automat
 Une manière de représenter les données serait la suivante :
 
 ```yaml
-title: Octopus Spain
+title: Octopus French
 type: entities
 entities:
-  - entity: sensor.ultima_factura_octopus
+  - entity: sensor.derniere_facture_octopus
   - entity: sensor.solar_wallet
   - entity: sensor.octopus_credit
   - type: attribute
-    entity: sensor.ultima_factura_octopus
+    entity: sensor.derniere_facture_octopus
     name: Début
     icon: mdi:calendar-start
     attribute: Début
   - type: attribute
-    entity: sensor.ultima_factura_octopus
+    entity: sensor.derniere_facture_octopus
     name: Fin
     icon: mdi:calendar-end
     attribute: Fin
   - type: attribute
-    entity: sensor.ultima_factura_octopus
+    entity: sensor.derniere_facture_octopus
     name: Émise
     icon: mdi:email-fast-outline
     attribute: Émise
