@@ -1,131 +1,68 @@
-import logging
-from datetime import timedelta
-from typing import Mapping, Any
+"""Octopus French – Minimal authentication sensor with detailed logs."""
 
-from homeassistant.helpers.typing import StateType
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, CoordinatorEntity
-from .const import (
-    CONF_PASSWORD,
-    CONF_EMAIL, UPDATE_INTERVAL
-)
+from __future__ import annotations
 
-from homeassistant.const import (
-    CURRENCY_EURO,
-)
-
-from homeassistant.components.sensor import (
-    SensorEntityDescription, SensorEntity, SensorStateClass
-)
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from datetime import datetime
+
+from .utils.logger import LOGGER
 from .lib.octopus_french import OctopusFrench
 
-_LOGGER = logging.getLogger(__name__)
 
+class OctopusDummySensor(SensorEntity):
+    """Capteur dummy pour forcer l’exécution des logs."""
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
-    email = entry.data[CONF_EMAIL]
-    password = entry.data[CONF_PASSWORD]
-
-    sensors = []
-    coordinator = OctopusCoordinator(hass, email, password)
-    await coordinator.async_config_entry_first_refresh()
-
-    accounts = coordinator.data.keys()
-    for account in accounts:
-        sensors.append(OctopusWallet(account, 'solar_wallet', 'Solar Wallet', coordinator, len(accounts) == 1))
-        sensors.append(OctopusWallet(account, 'octopus_credit', 'Octopus Credit', coordinator, len(accounts) == 1))
-        sensors.append(OctopusInvoice(account, coordinator, len(accounts) == 1))
-
-    async_add_entities(sensors)
-
-
-class OctopusCoordinator(DataUpdateCoordinator):
-
-    def __init__(self, hass: HomeAssistant, email: str, password: str):
-        super().__init__(hass=hass, logger=_LOGGER, name="Octopus French", update_interval=timedelta(hours=UPDATE_INTERVAL))
-        self._api = OctopusFrench(email, password)
-        self._data = {}
-
-    async def _async_update_data(self):
-        if await self._api.login():
-            self._data = {}
-            accounts = await self._api.accounts()
-            for account in accounts:
-                self._data[account] = await self._api.account(account)
-
-        return self._data
-
-
-class OctopusWallet(CoordinatorEntity, SensorEntity):
-
-    def __init__(self, account: str, key: str, name: str, coordinator, single: bool):
-        super().__init__(coordinator=coordinator)
+    def __init__(self):
         self._state = None
-        self._key = key
-        self._account = account
-        self._attrs: Mapping[str, Any] = {}
-        self._attr_name = f"{name}" if single else f"{name} ({account})"
-        self._attr_unique_id = f"{key}_{account}"
-        self.entity_description = SensorEntityDescription(
-            key=f"{key}_{account}",
-            icon="mdi:piggy-bank-outline",
-            native_unit_of_measurement=CURRENCY_EURO,
-            state_class=SensorStateClass.MEASUREMENT
-        )
-
-    async def async_added_to_hass(self) -> None:
-        await super().async_added_to_hass()
-        self._handle_coordinator_update()
-
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        self._state = self.coordinator.data[self._account][self._key]
-        self.async_write_ha_state()
+        self._name = "Octopus Dummy"
 
     @property
-    def native_value(self) -> StateType:
+    def name(self):
+        return self._name
+
+    @property
+    def state(self):
         return self._state
 
+    async def async_update(self):
+        self._state = datetime.now().isoformat()
+        LOGGER.debug("[OctopusFR] Capteur dummy mis à jour : %s", self._state)
 
-class OctopusInvoice(CoordinatorEntity, SensorEntity):
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
+    """Set up Octopus French sensors (authentication only) with detailed logs."""
+    email = entry.data.get("email")
+    password = entry.data.get("password")
 
-    def __init__(self, account: str, coordinator, single: bool):
-        super().__init__(coordinator=coordinator)
-        self._state = None
-        self._account = account
-        self._attrs: Mapping[str, Any] = {}
-        self._attr_name = "Dernière facture Octopus" if single else f"Dernière facture Octopus ({account})"
-        self._attr_unique_id = f"last_invoice_{account}"
-        self.entity_description = SensorEntityDescription(
-            key=f"last_invoice_{account}",
-            icon="mdi:currency-eur",
-            native_unit_of_measurement=CURRENCY_EURO,
-            state_class=SensorStateClass.MEASUREMENT
-        )
 
-    async def async_added_to_hass(self) -> None:
-        await super().async_added_to_hass()
-        self._handle_coordinator_update()
+    LOGGER.info("[OctopusFR] Création du client pour %s", email)
 
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        data = self.coordinator.data[self._account]['last_invoice']
-        self._state = data['amount']
-        self._attrs = {
-            'Debut': data['start'],
-            'Fin': data['end'],
-            'Emis': data['issued']
-        }
-        self.async_write_ha_state()
+    client = OctopusFrench(
+        email=email,
+        password=password,
+        session=async_get_clientsession(hass),
+    )
 
-    @property
-    def native_value(self) -> StateType:
-        return self._state
+    LOGGER.info("[OctopusFR] Tentative de login...")
+    login_success = await client.login()
 
-    @property
-    def extra_state_attributes(self) -> Mapping[str, Any] | None:
-        return self._attrs
+    if not login_success:
+        LOGGER.error("[OctopusFR] Impossible de se connecter pour %s", email)
+        return
+
+    LOGGER.info("[OctopusFR] Login réussi pour %s", email)
+
+    LOGGER.info("[OctopusFR] Récupération des comptes...")
+    accounts = await client.accounts()
+
+    if not accounts:
+        LOGGER.warning("[OctopusFR] Aucun compte récupéré pour %s", email)
+        return
+
+    LOGGER.info("[OctopusFR] Comptes récupérés : %s", accounts)
+
+    async_add_entities([OctopusDummySensor()])
+    LOGGER.info("[OctopusFR] Capteur dummy créé pour test de logs")
