@@ -1,11 +1,12 @@
 {
   "domain": "octopus_french",
-  "name": "Octopus French",
-  "codeowners": ["@domodom30"],
+  "name": "Octopus France",
+  "codeowners": ["@Domodom30"],
   "config_flow": true,
-  "documentation": "https://github.com/domodom30/octopus_french",
+  "documentation": "https://github.com/Domodom30/octopus_french",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/domodom30/issues",
-  "requirements": ["python-graphql-client==0.4.3", "aiohttp"],
-  "version": "0.2.0"
+  "icon": "icon.png",
+  "issue_tracker": "https://github.com/Domodom30/issues",
+  "requirements": ["python-graphql-client==0.4.3"],
+  "version": "0.1.0"
 }

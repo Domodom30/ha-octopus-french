@@ -1,33 +1,33 @@
 {
-  "config": {
-    "abort": {
-      "already_configured": "L'appareil est déjà configuré"
-    },
-    "error": {
-      "invalid_auth": "Email ou mot de passe invalides."
-    },
-    "step": {
-      "user": {
-        "title": "Octopus Energy France",
-        "data": {
-          "email": "Email",
-          "password": "Mot de passe"
+    "config": {
+      "abort": {
+        "already_configured": "L'appareil est déjà configuré"
+      },
+      "error": {
+        "invalid_auth": "L'e-mail ou le mot de passe est invalide."
+      },
+      "step": {
+        "user": {
+          "title": "Octopus Energy Espagne",
+          "data": {
+            "email": "E-mail",
+            "password": "Mot de passe"
+          }
         }
       }
-    }
-  },
-  "options": {
-    "error": {
-      "invalid_auth": "Email ou mot de passe invalides."
     },
-    "step": {
-      "init": {
-        "title": "Octopus Energy France",
-        "data": {
-          "email": "Email",
-          "password": "Mot de passe"
+    "options": {
+      "error": {
+        "invalid_auth": "L'e-mail ou le mot de passe est invalide."
+      },
+      "step": {
+        "init": {
+          "title": "Octopus Energy Espagne",
+          "data": {
+            "email": "E-mail",
+            "password": "Mot de passe"
+          }
         }
       }
     }
   }
-}

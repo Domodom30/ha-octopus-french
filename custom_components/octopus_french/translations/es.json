@@ -4,28 +4,28 @@
       "already_configured": "Device is already configured"
     },
     "error": {
-      "invalid_auth": "Email or password are invalid."
+      "invalid_auth": "Email o contraseña inválidos."
     },
     "step": {
       "user": {
         "title": "Octopus Energy Spain",
         "data": {
           "email": "Email",
-          "password": "Password"
+          "password": "Contraseña"
         }
       }
     }
   },
   "options": {
     "error": {
-      "invalid_auth": "Email or password are invalid."
+      "invalid_auth": "Email o contraseña inválidos."
     },
     "step": {
       "init": {
         "title": "Octopus Energy Spain.",
         "data": {
           "email": "Email",
-          "password": "Password"
+          "password": "Contraseña"
         }
       }
     }
